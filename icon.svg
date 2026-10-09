@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="健身记录">
+  <rect width="512" height="512" rx="112" fill="#111318"/>
+  <g fill="#4ade80">
+    <rect x="92" y="198" width="42" height="116" rx="16"/>
+    <rect x="148" y="162" width="48" height="188" rx="18"/>
+    <rect x="208" y="236" width="96" height="40" rx="12"/>
+    <rect x="316" y="162" width="48" height="188" rx="18"/>
+    <rect x="378" y="198" width="42" height="116" rx="16"/>
+  </g>
+</svg>

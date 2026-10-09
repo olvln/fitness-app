@@ -1,0 +1,31 @@
+# 依赖与构建产物
+node_modules/
+dist/
+build/
+*.log
+
+# 编辑器 / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# 系统与临时文件
+*.tmp
+*.bak
+*.orig
+.cache/
+__pycache__/
+*.py[cod]
+
+# 个人数据：App 导出的训练备份，别提交
+fitness-backup-*.json
+
+# 本地环境（如果之后需要）
+.env
+.env.*
+!.env.example

@@ -1,0 +1,559 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111318">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="健身记录">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg">
+<title>健身记录</title>
+<style>
+:root{--bg:#111318;--card:#1b1e25;--line:#2a2f39;--fg:#e8eaee;--muted:#8b93a1;--acc:#4ade80;--warn:#fbbf24}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+header{position:sticky;top:0;z-index:5;background:#171a20;border-bottom:1px solid var(--line);padding:10px 14px;padding-top:calc(10px + env(safe-area-inset-top))}
+h1{margin:0;font-size:16px;font-weight:600}
+#restBar{display:flex;align-items:center;gap:10px;margin-top:8px;background:#20242c;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+#restBar.done{background:#2b2410;border-color:var(--warn)}
+#restTime{font-size:22px;font-variant-numeric:tabular-nums;font-weight:600;min-width:74px}
+#restLabel{color:var(--muted);flex:1}
+main{padding:12px 12px 24px;max-width:720px;margin:0 auto}
+nav{position:fixed;left:0;right:0;bottom:0;display:flex;background:#171a20;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom);z-index:5}
+nav button{flex:1;background:none;border:0;color:var(--muted);padding:14px 0;font-size:13px}
+nav button.on{color:var(--acc);font-weight:600}
+button{font:inherit;color:var(--fg);background:#262b34;border:1px solid var(--line);border-radius:9px;padding:9px 12px;min-height:44px}
+button:active{opacity:.7}
+button.acc{background:#1f4d33;border-color:#2f7a4e;color:#d7ffe6}
+button.sm{padding:5px 9px;font-size:13px}
+input,select{font:inherit;color:var(--fg);background:#12151a;border:1px solid var(--line);border-radius:8px;padding:8px 9px;width:100%;min-height:44px}
+.filein{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.row{display:flex;align-items:center;gap:8px}
+.head{justify-content:space-between;margin-bottom:8px}
+.muted{color:var(--muted);font-size:13px}
+.grow{flex:1}
+.set{display:flex;align-items:center;gap:6px;margin-top:6px}
+.idx{width:20px;text-align:center;color:var(--muted);font-size:13px}
+.set input{width:64px;text-align:center}
+.set .x{color:var(--muted)}
+.set .ok{width:46px;padding:9px 0;background:#262b34}
+.set.on .ok{background:#1f4d33;border-color:#2f7a4e;color:#d7ffe6}
+.set.on input{opacity:.75}
+.rest{margin-left:auto;color:var(--muted);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.grid .w{color:var(--muted);font-size:12px;padding:4px 0}
+.grid .d{padding:8px 0;border-radius:8px;border:1px solid transparent;font-size:14px}
+.grid .d.has{background:#1f4d33;border-color:#2f7a4e}
+.grid .d.today{border-color:var(--acc)}
+.grid .d.sel{outline:2px solid var(--acc)}
+.item{display:flex;gap:6px;align-items:center;margin-top:6px}
+.item select{flex:2;min-width:0}
+.item input{width:56px;text-align:center;flex:none}
+table{width:100%;border-collapse:collapse;font-size:14px}
+td,th{padding:7px 4px;border-bottom:1px solid var(--line);text-align:left}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+#toast{position:fixed;left:50%;bottom:86px;transform:translateX(-50%);background:#2b3140;border:1px solid var(--line);padding:9px 14px;border-radius:9px;opacity:0;transition:.2s;pointer-events:none;z-index:9}
+#toast.on{opacity:1}
+pre{white-space:pre-wrap;font-size:13px}
+.exitem{border:1px solid var(--line);background:#171a20;border-radius:10px;padding:8px;margin-bottom:8px}
+.pickbtn{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;font-size:15px;width:100%}
+.pickbtn .caret{color:var(--muted);font-size:12px;flex:none}
+.flds{display:flex;gap:8px;margin-top:8px;align-items:flex-end}
+.fld{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--muted)}
+.fld input{width:100%;text-align:center}
+.fld .pair{display:flex;align-items:center;gap:4px}
+.fld .pair i{font-style:normal;color:var(--muted)}
+.sheet{position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.55);display:flex;align-items:flex-end}
+.sheetbox{width:100%;max-height:70vh;background:var(--card);border-radius:14px 14px 0 0;display:flex;flex-direction:column;padding-top:10px}
+.sheetlist{overflow-y:auto;padding:6px 12px calc(12px + env(safe-area-inset-bottom))}
+.opt{display:block;width:100%;text-align:left;font-size:14px;min-height:44px;padding:10px 12px;background:#20242c;border:1px solid var(--line);border-radius:9px;margin-top:6px}
+.opt.on{background:#1f4d33;border-color:#2f7a4e;color:#d7ffe6}
+.ok-t{color:var(--acc)}.bad-t{color:#f87171}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="title">健身记录</h1>
+  <div id="restBar" hidden>
+    <span id="restTime">0:00</span>
+    <span id="restLabel">组间歇</span>
+    <button class="sm" data-act="rest-plus">+15s</button>
+    <button class="sm" data-act="rest-skip">跳过</button>
+  </div>
+</header>
+<main id="view"></main>
+<nav id="nav">
+  <button data-act="tab" data-tab="train">训练</button>
+  <button data-act="tab" data-tab="cal">日历</button>
+  <button data-act="tab" data-tab="stats">统计</button>
+  <button data-act="tab" data-tab="set">设置</button>
+</nav>
+<div id="toast"></div>
+<script>
+'use strict';
+const KEY='fitness.v1';
+const PRESETS={
+  bench:'卧推',benchinc:'上斜卧推',dbpress:'哑铃卧推',dbpressinc:'上斜哑铃卧推',dip:'双杠臂屈伸',fly:'器械夹胸',
+  pullup:'引体向上',pulldown:'高位下拉',row:'杠铃划船',dbrow:'哑铃划船',rowseat:'坐姿划船',deadlift:'硬拉',facepull:'面拉',
+  ohp:'坐姿推举',dbohp:'哑铃推举',lateral:'侧平举',rearfly:'后束飞鸟',shrug:'耸肩',
+  squat:'深蹲',frontsquat:'前蹲',legpress:'腿举',rdl:'罗马尼亚硬拉',legcurl:'腿弯举',legext:'腿屈伸',bss:'保加利亚分腿蹲',calf:'站姿提踵',hipthrust:'臀桥',
+  curl:'杠铃弯举',dbcurl:'哑铃弯举',hammer:'锤式弯举',pushdown:'绳索下压',cgbp:'窄距卧推',skull:'仰卧臂屈伸',
+  crunch:'卷腹',hlr:'悬垂举腿',plank:'平板支撑'
+};
+const TEMPLATE=[
+  {name:'推',items:[
+    {ex:'bench',sets:4,repMin:8,repMax:12,rest:90},
+    {ex:'benchinc',sets:3,repMin:10,repMax:12,rest:75},
+    {ex:'ohp',sets:4,repMin:8,repMax:12,rest:90},
+    {ex:'pushdown',sets:3,repMin:12,repMax:15,rest:60},
+    {ex:'lateral',sets:3,repMin:15,repMax:20,rest:45}]},
+  {name:'拉',items:[
+    {ex:'pullup',sets:4,repMin:6,repMax:10,rest:120},
+    {ex:'row',sets:4,repMin:8,repMax:12,rest:90},
+    {ex:'pulldown',sets:3,repMin:10,repMax:12,rest:75},
+    {ex:'facepull',sets:3,repMin:15,repMax:20,rest:45},
+    {ex:'curl',sets:3,repMin:10,repMax:12,rest:60}]},
+  {name:'腿',items:[
+    {ex:'squat',sets:4,repMin:6,repMax:10,rest:120},
+    {ex:'rdl',sets:3,repMin:8,repMax:12,rest:120},
+    {ex:'legpress',sets:3,repMin:10,repMax:15,rest:90},
+    {ex:'legcurl',sets:3,repMin:12,repMax:15,rest:60},
+    {ex:'calf',sets:4,repMin:15,repMax:20,rest:45}]}
+];
+const pad=n=>String(n).padStart(2,'0');
+const dayKey=(d=new Date())=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const clampInt=(v,min,max,dflt)=>{const n=Math.round(parseFloat(v));return Number.isFinite(n)?Math.min(max,Math.max(min,n)):dflt;};
+const nextIndex=(i,n)=>((i+1)%n+n)%n;
+const restElapsed=(start,now)=>Math.max(0,Math.round((now-start)/1000));
+const fmtSec=s=>Math.floor(s/60)+':'+pad(Math.round(s)%60);
+
+function defaultDB(){
+  return {v:1,exercises:Object.assign({},PRESETS),defaultRest:90,cursor:0,history:{},active:null,
+    days:TEMPLATE.map((d,i)=>({id:'d'+i,name:d.name,items:JSON.parse(JSON.stringify(d.items))}))};
+}
+function migrate(raw){
+  const base=defaultDB();
+  if(!raw||typeof raw!=='object')return base;
+  const db=Object.assign(base,raw);
+  db.exercises=Object.assign({},base.exercises,raw.exercises||{});
+  if(!Array.isArray(db.days)||!db.days.length)db.days=base.days;
+  db.days=db.days.map((d,i)=>({id:d.id||'d'+i,name:d.name||('训练日'+(i+1)),items:Array.isArray(d.items)?d.items:[]}));
+  if(!db.history||typeof db.history!=='object')db.history={};
+  db.defaultRest=clampInt(db.defaultRest,5,600,90);
+  db.cursor=Number.isFinite(db.cursor)?Math.floor(db.cursor):0;
+  db.cursor=((db.cursor%db.days.length)+db.days.length)%db.days.length;
+  if(!db.active||!Array.isArray(db.active.items))db.active=null;
+  db.v=1;
+  return db;
+}
+const volumeOf=sets=>sets.reduce((a,s)=>a+(+s.w||0)*(+s.r||0),0);
+const bestWeight=sets=>sets.reduce((a,s)=>Math.max(a,+s.w||0),0);
+function mergeSession(history,date,entry){                    // 同一天练第二次就追加，不覆盖
+  if(history[date]){history[date].sets=history[date].sets.concat(entry.sets);return history[date];}
+  return (history[date]=entry);
+}
+function backupName(){return 'fitness-backup-'+dayKey()+'.json';}
+function parseBackup(text){                                   // 备份文件是严格格式：不合法就明说哪里不对
+  let raw;
+  try{raw=JSON.parse(text);}catch(e){return {error:'JSON 解析失败，文件已损坏'};}
+  if(!raw||typeof raw!=='object'||Array.isArray(raw))return {error:'文件内容不是备份对象'};
+  if(raw.v!==1)return {error:'备份版本不匹配（v='+raw.v+'），本程序只认 v=1'};
+  if(!Array.isArray(raw.days)||!raw.days.length)return {error:'备份缺少训练日'};
+  if(!raw.exercises||typeof raw.exercises!=='object')return {error:'备份缺少动作库'};
+  if(!raw.history||typeof raw.history!=='object')return {error:'备份缺少历史记录'};
+  return {db:migrate(raw)};
+}
+function mergeDB(local,inc){                                  // 合并：本机已有的日期保留不动，只补本机缺的日期和训练日
+  local.exercises=Object.assign({},inc.exercises,local.exercises);
+  inc.days.forEach(d=>{if(!local.days.some(x=>x.id===d.id))local.days.push(d);});
+  Object.keys(inc.history).forEach(date=>{if(!local.history[date])local.history[date]=inc.history[date];});
+  return local;
+}
+function importInto(local,text,mode){                         // 供 UI 和自检共用
+  const r=parseBackup(text);
+  if(r.error)return r;
+  return {db:mode==='overwrite'?r.db:mergeDB(local,r.db)};
+}
+
+let DB=migrate(JSON.parse(localStorage.getItem(KEY)||'null'));
+const save=()=>localStorage.setItem(KEY,JSON.stringify(DB));
+const rest={active:false,start:0,total:0,owner:null,fired:false};
+const tapAt={};                                               // 每组最后一次点击时间，防连点重复起计时器
+let pick=null;                                                // 正在选动作的槽位 {di,i}
+let tab='train',cal={y:new Date().getFullYear(),m:new Date().getMonth(),sel:dayKey()};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function toast(msg){$('toast').textContent=msg;$('toast').className='on';clearTimeout(toast.t);toast.t=setTimeout(()=>$('toast').className='',1600);}
+let pendingBackup=null;                                       // 已读取待确认的导入文件
+function doExport(){
+  const url=URL.createObjectURL(new Blob([JSON.stringify(DB)],{type:'application/json'}));
+  const a=document.createElement('a');
+  a.href=url;a.download=backupName();
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  toast('已导出 '+a.download);
+}
+function readBackupFile(file){
+  if(!file)return;
+  file.text().then(text=>{
+    const r=parseBackup(text);
+    if(r.error){pendingBackup=null;toast('导入失败：'+r.error);render();return;}
+    pendingBackup={text,name:file.name,days:r.db.days.length,dates:Object.keys(r.db.history).length};
+    render();
+  }).catch(e=>{pendingBackup=null;toast('读取文件失败：'+e.message);render();});
+}
+function applyImport(mode){
+  if(!pendingBackup)return;
+  if(mode==='overwrite'&&DB.active&&!confirm('覆盖会丢掉正在进行的训练，继续？'))return;
+  const snapshot=JSON.stringify(DB);                          // 失败可回滚
+  try{
+    const r=importInto(DB,pendingBackup.text,mode);
+    if(r.error){toast('导入失败：'+r.error);return;}
+    DB=r.db;rest.active=false;rest.owner=null;save();
+  }catch(e){
+    DB=migrate(JSON.parse(snapshot));save();
+    pendingBackup=null;render();toast('导入失败，已回滚：'+e.message);return;
+  }
+  pendingBackup=null;render();
+  toast(mode==='overwrite'?'已覆盖本机数据':'已合并导入数据');
+}
+function lastSetsFor(ex){                                     // 最近一次练该动作的组
+  for(const date of Object.keys(DB.history).sort().reverse()){
+    const s=DB.history[date].sets.filter(x=>x.ex===ex);
+    if(s.length)return {date,sets:s};
+  }
+  return null;
+}
+function startWorkout(di){
+  const d=DB.days[di];if(!d)return;
+  DB.active={date:dayKey(),di,dayId:d.id,name:d.name,started:Date.now(),items:d.items.map(it=>{
+    const last=lastSetsFor(it.ex);
+    return {ex:it.ex,name:DB.exercises[it.ex]||it.ex,repMin:it.repMin,repMax:it.repMax,rest:it.rest,
+      sets:Array.from({length:Math.max(1,it.sets|0)},(_,i)=>({w:last?(last.sets[i]?last.sets[i].w:''):'',r:last?(last.sets[i]?last.sets[i].r:''):'',done:false,restSec:null}))};
+  })};
+  save();tab='train';render();
+}
+function completeSet(ii,si){
+  const k=ii+':'+si,now=Date.now();
+  // shortcut: 同一组 300ms 内的重复点击一律忽略（含撤销），嫌撤销不够快时再按动作区分防抖
+  if(now-(tapAt[k]||0)<300)return;
+  tapAt[k]=now;
+  const it=DB.active.items[ii],s=it.sets[si];
+  if(s.done){                                                 // 点已完成的组 = 撤销
+    s.done=false;s.restSec=null;
+    if(rest.owner===s){rest.active=false;rest.owner=null;}
+    save();render();return;
+  }
+  if(rest.active&&rest.owner){rest.owner.restSec=restElapsed(rest.start,Date.now());}
+  s.done=true;
+  rest.active=true;rest.start=Date.now();rest.total=it.rest||DB.defaultRest;rest.owner=s;rest.fired=false;
+  save();render();
+}
+function finishWorkout(){
+  const sets=[];
+  DB.active.items.forEach(it=>it.sets.forEach(s=>{if(s.done)sets.push({ex:it.ex,name:it.name,w:+s.w||0,r:+s.r||0,rest:s.restSec==null?null:s.restSec});}));
+  if(!sets.length){toast('还没有记录任何组');return;}
+  if(rest.owner&&rest.active)rest.owner.restSec=null;
+  const entry=mergeSession(DB.history,DB.active.date,{name:DB.active.name,dayId:DB.active.dayId,sets});
+  DB.cursor=nextIndex(DB.active.di,DB.days.length);
+  DB.active=null;rest.active=false;rest.owner=null;
+  save();tab='cal';cal.sel=dayKey();render();
+  toast('已完成 '+entry.name+'，下次：'+DB.days[DB.cursor].name);
+}
+let ac=null;
+function unlockAudio(){try{if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();}catch(e){}}
+let wl=null;                                                  // 屏幕常亮（http 局域网下大多数浏览器不给，静默跳过）
+async function wakeOn(){if(wl||!navigator.wakeLock)return;try{wl=await navigator.wakeLock.request('screen');}catch(e){wl=null;}}
+function wakeOff(){if(!wl)return;try{wl.release();}catch(e){}wl=null;}
+const isPrimed=()=>{try{return sessionStorage.getItem('audioPrimed')==='1';}catch(e){return false;}};
+function primeAudio(){                                        // 首次交互时放一个近乎静音的短音，解锁移动端音频
+  unlockAudio();
+  if(ac&&ac.state==='suspended')ac.resume();
+  if(ac)try{const o=ac.createOscillator(),g=ac.createGain();g.gain.value=.0001;o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+.02);}catch(e){}
+  try{sessionStorage.setItem('audioPrimed','1');}catch(e){}
+  const b=$('audioHint');if(b)b.remove();
+}
+function beep(){
+  if(!ac)return;
+  if(ac.state==='suspended')ac.resume();
+  [0,.22,.44].forEach((t,i)=>{const o=ac.createOscillator(),g=ac.createGain();
+    o.frequency.value=i===2?1200:880;o.connect(g);g.connect(ac.destination);
+    g.gain.setValueAtTime(.001,ac.currentTime+t);
+    g.gain.exponentialRampToValueAtTime(.3,ac.currentTime+t+.02);
+    g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+t+.18);
+    o.start(ac.currentTime+t);o.stop(ac.currentTime+t+.2);});
+  if(navigator.vibrate)navigator.vibrate([180,80,180]);
+}
+function tick(){
+  const bar=$('restBar');
+  if(!rest.active){if(!bar.hidden){bar.hidden=true;bar.classList.remove('done');}return;}
+  const left=rest.total-restElapsed(rest.start,Date.now());
+  bar.hidden=false;
+  $('restTime').textContent=fmtSec(Math.max(0,left));
+  $('restLabel').textContent=left>0?'组间歇':'休息结束，开始下一组';
+  bar.classList.toggle('done',left<=0);
+  if(left<=0&&!rest.fired){rest.fired=true;beep();}
+}
+
+function renderTop(){
+  $('title').textContent={train:'训练',cal:'日历',stats:'统计',set:'设置'}[tab];
+  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  tick();
+}
+function render(){
+  if(DB.active)wakeOn();else wakeOff();                       // 训练中保持屏幕常亮，不支持则静默跳过
+  renderTop();({train:renderTrain,cal:renderCal,stats:renderStats,set:renderSet})[tab]();
+}
+
+function renderTrain(){
+  const v=$('view');
+  if(!DB.active){
+    const done=DB.history[dayKey()];
+    v.innerHTML=`
+      <div class="card">
+        <div class="row head"><b>今天该练：${esc(DB.days[DB.cursor].name)}</b><span class="muted">训练日 ${DB.cursor+1}/${DB.days.length}</span></div>
+        <div class="item"><select data-act="cursor">${DB.days.map((d,i)=>`<option value="${i}" ${i===DB.cursor?'selected':''}>${esc(d.name)}</option>`).join('')}</select></div>
+        <div class="row" style="margin-top:10px;gap:8px">
+          <button class="acc grow" data-act="start" data-di="${DB.cursor}">开始训练</button>
+        </div>
+        ${done?`<p class="muted">今天已记录：${esc(done.name)}，共 ${done.sets.length} 组。再点“开始训练”会在同一天追加。</p>`:''}
+      </div>`;
+    return;
+  }
+  const items=DB.active.items;
+  const total=items.reduce((a,it)=>a+it.sets.length,0);
+  const doneN=items.reduce((a,it)=>a+it.sets.filter(s=>s.done).length,0);
+  v.innerHTML=`
+    <div class="card">
+      <div class="row head"><b>${esc(DB.active.name)}</b><span class="muted">${doneN}/${total} 组</span></div>
+      <div class="row"><span class="muted grow">点 ✓ 记录该组，并自动开始组间歇</span>
+      <button class="sm" data-act="abandon">放弃</button></div>
+    </div>
+    ${isPrimed()?'':`<div class="card" id="audioHint" style="border-color:#2f7a4e">
+      <div class="row"><b class="grow">点任意处启用提示音</b><button class="sm" data-act="hint-ok">知道了</button></div>
+      <p class="muted">手机浏览器要求先有一次操作才允许播放声音，点一下这里之后组间歇结束就会响。</p>
+    </div>`}
+    ${items.map((it,ii)=>{
+      const last=lastSetsFor(it.ex);
+      return `<div class="card">
+        <div class="row head"><b>${esc(it.name)}</b><span class="muted">目标 ${it.sets.length}×${it.repMin}-${it.repMax} · 休 ${it.rest||DB.defaultRest}s</span></div>
+        ${last?`<div class="muted">上次(${last.date.slice(5)})：${last.sets.map(s=>`${s.w}×${s.r}`).join(' · ')}</div>`:''}
+        <div class="sets">${it.sets.map((s,si)=>`
+          <div class="set ${s.done?'on':''}">
+            <span class="idx">${si+1}</span>
+            <input type="text" inputmode="decimal" value="${esc(s.w)}" placeholder="kg" data-act="w" data-f="w" data-ii="${ii}" data-si="${si}">
+            <span class="x">×</span>
+            <input type="text" inputmode="numeric" value="${esc(s.r)}" placeholder="次" data-act="w" data-f="r" data-ii="${ii}" data-si="${si}">
+            <button class="ok" data-act="done" data-ii="${ii}" data-si="${si}">✓</button>
+            ${s.restSec==null?'':`<span class="rest">休 ${s.restSec}s</span>`}
+          </div>`).join('')}</div>
+      </div>`;}).join('')}
+    <button class="acc" style="width:100%" data-act="finish">完成训练</button>`;
+}
+function renderCal(){
+  const first=new Date(cal.y,cal.m,1),lead=first.getDay(),n=new Date(cal.y,cal.m+1,0).getDate();
+  const cells=[];
+  for(let i=0;i<lead;i++)cells.push('<div></div>');
+  for(let d=1;d<=n;d++){
+    const k=`${cal.y}-${pad(cal.m+1)}-${pad(d)}`,h=DB.history[k];
+    cells.push(`<div class="d ${h?'has':''} ${k===dayKey()?'today':''} ${k===cal.sel?'sel':''}" data-act="cal-day" data-date="${k}">${d}</div>`);
+  }
+  const sel=DB.history[cal.sel];
+  let detail='<p class="muted">这一天没有记录</p>';
+  if(sel){
+    const groups={};
+    sel.sets.forEach(s=>{(groups[s.ex]=groups[s.ex]||[]).push(s);});
+    detail=`<div class="row head"><b>${esc(sel.name)}</b><span class="muted">${sel.sets.length} 组 · 容量 ${Math.round(volumeOf(sel.sets))}kg</span></div>`+
+      Object.keys(groups).map(ex=>`<div class="row" style="align-items:flex-start"><span style="min-width:88px">${esc(DB.exercises[ex]||groups[ex][0].name)}</span>
+        <span class="muted grow">${groups[ex].map(s=>`${s.w}×${s.r}${s.rest==null?'':` <span style="opacity:.6">休${s.rest}s</span>`}`).join(' · ')}</span></div>`).join('');
+  }
+  $('view').innerHTML=`
+    <div class="card">
+      <div class="row head"><button class="sm" data-act="cal-prev">‹</button><b>${cal.y} 年 ${cal.m+1} 月</b><button class="sm" data-act="cal-next">›</button></div>
+      <div class="grid">${['日','一','二','三','四','五','六'].map(w=>`<div class="w">${w}</div>`).join('')}${cells.join('')}</div>
+    </div>
+    <div class="card">${detail}</div>`;
+}
+function renderStats(){
+  const agg={};
+  Object.keys(DB.history).forEach(date=>DB.history[date].sets.forEach(s=>{
+    const a=agg[s.ex]=agg[s.ex]||{name:s.name,sets:0,volume:0,best:0,last:''};
+    a.sets++;a.volume+=(+s.w||0)*(+s.r||0);a.best=Math.max(a.best,+s.w||0);
+    a.last=date>a.last?date:a.last;
+  }));
+  const rows=Object.keys(agg).map(k=>({k,...agg[k]})).sort((a,b)=>b.volume-a.volume);
+  $('view').innerHTML=`<div class="card">
+    <div class="row head"><b>动作统计</b><span class="muted">共 ${rows.length} 个动作</span></div>
+    ${rows.length?`<table><tr><th>动作</th><th class="n">最佳</th><th class="n">组数</th><th class="n">容量</th><th class="n">最近</th></tr>
+      ${rows.map(r=>`<tr><td>${esc(DB.exercises[r.k]||r.name)}</td><td class="n">${r.best||'-'}</td><td class="n">${r.sets}</td><td class="n">${Math.round(r.volume)}</td><td class="n">${r.last.slice(5)}</td></tr>`).join('')}</table>`
+      :'<p class="muted">还没有训练记录</p>'}
+  </div>`;
+}
+function openPicker(di,i){pick={di,i};render();}
+function closePicker(){pick=null;render();}
+function setExercise(di,i,k){
+  const it=DB.days[di]&&DB.days[di].items[i];
+  if(!it||!DB.exercises[k])return;
+  it.ex=k;pick=null;save();render();
+}
+function renderSet(){
+  const pickItem=pick&&DB.days[pick.di]&&DB.days[pick.di].items[pick.i];   // 弹层打开时数据被改动过就不渲染
+  $('view').innerHTML=`
+    <div class="card">
+      <div class="row head"><b>默认组间歇</b></div>
+      <div class="item"><input type="text" inputmode="numeric" value="${DB.defaultRest}" data-act="default-rest"><span class="muted">秒（动作没单独设置时用它）</span></div>
+    </div>
+    ${DB.days.map((d,di)=>`<div class="card">
+      <div class="row head">
+        <input class="grow" value="${esc(d.name)}" data-act="day-name" data-di="${di}">
+        <button class="sm" data-act="day-del" data-di="${di}">删除</button>
+      </div>
+      ${d.items.map((it,ii)=>`<div class="exitem">
+        <div class="row">
+          <button class="pickbtn grow" data-act="pick" data-di="${di}" data-i="${ii}">${esc(DB.exercises[it.ex]||it.ex)}<span class="caret">▾</span></button>
+          <button class="sm" data-act="item-del" data-di="${di}" data-i="${ii}">删除</button>
+        </div>
+        <div class="flds">
+          <label class="fld"><span>组数</span><input type="text" inputmode="numeric" value="${it.sets}" data-act="item-sets" data-di="${di}" data-i="${ii}"></label>
+          <label class="fld"><span>次数</span><span class="pair"><input type="text" inputmode="numeric" value="${it.repMin}" data-act="item-repmin" data-di="${di}" data-i="${ii}"><i>~</i><input type="text" inputmode="numeric" value="${it.repMax}" data-act="item-repmax" data-di="${di}" data-i="${ii}"></span></label>
+          <label class="fld"><span>休息秒</span><input type="text" inputmode="numeric" value="${it.rest}" data-act="item-rest" data-di="${di}" data-i="${ii}"></label>
+        </div>
+      </div>`).join('')}
+      <div class="row" style="margin-top:8px"><span class="muted grow">动作名点开可直接换</span><button class="sm" data-act="item-add" data-di="${di}">+ 动作</button></div>
+    </div>`).join('')}
+    <div class="card">
+      <div class="row head"><b>训练日</b></div>
+      <button data-act="day-add">+ 新增训练日</button>
+    </div>
+    <div class="card">
+      <div class="row head"><b>动作库</b><span class="muted">${Object.keys(DB.exercises).length} 个</span></div>
+      ${Object.keys(DB.exercises).map(k=>`<div class="item"><span class="grow">${esc(DB.exercises[k])}</span><button class="sm" data-act="ex-del" data-k="${k}">×</button></div>`).join('')}
+      <div class="item" style="margin-top:10px"><input id="newEx" placeholder="新动作名"><button data-act="ex-add">添加</button></div>
+    </div>
+    <div class="card">
+      <div class="row head"><b>数据备份</b></div>
+      <div class="row" style="gap:8px">
+        <button class="grow" data-act="export">导出数据</button>
+        <button class="grow" data-act="import">导入数据</button>
+      </div>
+      <input type="file" id="importFile" class="filein" accept=".json,application/json" data-act="import-file">
+      ${pendingBackup?`
+        <p class="muted">已读取 ${esc(pendingBackup.name)}：${pendingBackup.days} 个训练日 / ${pendingBackup.dates} 天记录</p>
+        <div class="row" style="gap:8px">
+          <button class="grow" data-act="import-merge">合并到现有数据</button>
+          <button class="grow" data-act="import-overwrite">覆盖现有数据</button>
+        </div>
+        <button class="sm" style="margin-top:8px" data-act="import-cancel">取消</button>`
+      :'<p class="muted">文件名形如 fitness-backup-2026-10-09.json。合并=本机已有的日期保留不动，只补进本机没有的记录；覆盖=完全替换本机数据。</p>'}
+    </div>
+    ${pickItem?`<div class="sheet" data-act="pick-close">
+      <div class="sheetbox">
+        <div class="row" style="padding:0 12px"><b class="grow">选择动作</b><button class="sm" data-act="pick-close">关闭</button></div>
+        <div class="sheetlist">${Object.keys(DB.exercises).map(k=>`<button class="opt ${k===pickItem.ex?'on':''}" data-act="pick-set" data-di="${pick.di}" data-i="${pick.i}" data-k="${k}">${esc(DB.exercises[k])}</button>`).join('')}</div>
+      </div>
+    </div>`:''}`;
+}
+
+// —— 事件 ——
+document.addEventListener('click',e=>{                        // 监听在 document 上：+15s/跳过按钮在 header 里，不在 #view 内
+  const el=e.target.closest('[data-act]');if(!el)return;
+  const d=el.dataset;
+  switch(d.act){
+    case 'start':startWorkout(+d.di);break;
+    case 'done':completeSet(+d.ii,+d.si);break;
+    case 'finish':finishWorkout();break;
+    case 'abandon':if(confirm('放弃本次训练？已记录的组会丢掉')){DB.active=null;rest.active=false;rest.owner=null;save();render();}break;
+    case 'rest-plus':{
+      if(!rest.active||Date.now()-rest.start>=rest.total*1000){toast(rest.active?'组间歇已经结束':'当前没有组间歇在计时');break;}
+      rest.total+=15;rest.fired=false;tick();break;}          // 加的是倒计时基准（total），不是 UI 临时值，加完立刻重绘
+    case 'hint-ok':primeAudio();break;
+    case 'rest-skip':if(rest.owner){rest.owner.restSec=null;}rest.active=false;rest.owner=null;tick();break;
+    case 'cal-prev':cal.m--;if(cal.m<0){cal.m=11;cal.y--;}render();break;
+    case 'cal-next':cal.m++;if(cal.m>11){cal.m=0;cal.y++;}render();break;
+    case 'cal-day':cal.sel=d.date;render();break;
+    case 'day-add':DB.days.push({id:'d'+Date.now(),name:'训练日'+(DB.days.length+1),items:[]});save();render();break;
+    case 'day-del':if(DB.days.length<2){toast('至少留一个训练日');break;}
+      if(confirm('删除训练日「'+DB.days[+d.di].name+'」？')){DB.days.splice(+d.di,1);DB.cursor=Math.min(DB.cursor,DB.days.length-1);save();render();}break;
+    case 'item-add':DB.days[+d.di].items.push({ex:Object.keys(DB.exercises)[0],sets:3,repMin:8,repMax:12,rest:DB.defaultRest});save();render();break;
+    case 'item-del':DB.days[+d.di].items.splice(+d.i,1);save();render();break;
+    case 'pick':openPicker(+d.di,+d.i);break;
+    case 'pick-set':setExercise(+d.di,+d.i,d.k);break;
+    case 'pick-close':if(pick)closePicker();break;
+    case 'ex-add':{const inp=$('newEx'),name=inp.value.trim();if(!name)break;
+      if(Object.values(DB.exercises).includes(name)){toast('已有同名动作');break;}
+      DB.exercises['x'+Date.now()]=name;save();render();break;}
+    case 'ex-del':{const k=d.k;
+      const used=DB.days.some(x=>x.items.some(it=>it.ex===k));
+      if(used){toast('该动作还在训练日里用着，先删掉再删它');break;}
+      if(confirm('删除动作「'+DB.exercises[k]+'」？')){delete DB.exercises[k];save();render();}break;}
+    case 'export':doExport();break;
+    case 'import':{const f=$('importFile');f.value='';f.click();break;}
+    case 'import-merge':applyImport('merge');break;
+    case 'import-overwrite':applyImport('overwrite');break;
+    case 'import-cancel':pendingBackup=null;render();break;
+  }
+});
+$('nav').addEventListener('click',e=>{
+  const el=e.target.closest('[data-act]');if(!el)return;
+  tab=el.dataset.tab;render();
+});
+$('view').addEventListener('input',e=>{
+  const el=e.target.closest('[data-act]');if(!el)return;
+  if(el.dataset.act!=='w')return;
+  const s=DB.active.items[+el.dataset.ii].sets[+el.dataset.si];
+  s[el.dataset.f]=el.value.trim();
+  save();
+});
+$('view').addEventListener('change',e=>{
+  const el=e.target.closest('[data-act]');if(!el)return;
+  const d=el.dataset;
+  if(d.act==='import-file'){readBackupFile(el.files&&el.files[0]);return;}
+  if(d.act==='cursor'){DB.cursor=+el.value;save();render();return;}
+  const day=DB.days[+d.di],it=day&&day.items[+d.i];
+  switch(d.act){
+    case 'day-name':day.name=el.value.trim()||'训练日';save();break;
+    case 'default-rest':DB.defaultRest=clampInt(el.value,5,600,DB.defaultRest);save();render();break;
+    case 'item-sets':it.sets=clampInt(el.value,1,20,it.sets);save();render();break;
+    case 'item-repmin':it.repMin=clampInt(el.value,1,100,it.repMin);save();break;
+    case 'item-repmax':it.repMax=clampInt(el.value,1,100,it.repMax);save();break;
+    case 'item-rest':it.rest=clampInt(el.value,5,600,it.rest);save();break;
+  }
+});
+document.addEventListener('pointerdown',()=>{unlockAudio();if(!isPrimed())primeAudio();});
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)wakeOff();                               // 切后台必须释放，回前台按需重新申请
+  else if(DB.active)wakeOn();
+});
+setInterval(tick,250);
+
+// —— 自检：?selftest=1 ——
+if(location.search.includes('selftest')){
+  const t=[],eq=(name,got,want)=>t.push([name,JSON.stringify(got)===JSON.stringify(want),got,want]);
+  const fresh=migrate(null);
+  eq('空数据用预置模板',fresh.days.map(d=>d.name),['推','拉','腿']);
+  eq('旧数据缺字段能迁移',migrate({v:0,days:fresh.days,cursor:99}).cursor,0);
+  eq('损坏数据不炸',migrate('oops').days.length,3);
+  eq('训练日循环推进',nextIndex(2,3),0);
+  eq('休息时长换算',restElapsed(1000,61000),60);
+  eq('容量=重量×次数',volumeOf([{w:60,r:8},{w:55,r:10}]),1030);
+  eq('最佳重量',bestWeight([{w:60,r:8},{w:62.5,r:5}]),62.5);
+  const h={};mergeSession(h,'2026-10-08',{name:'推',sets:[{ex:'bench',w:60,r:8}]});
+  mergeSession(h,'2026-10-08',{name:'推',sets:[{ex:'bench',w:62.5,r:8}]});
+  eq('同一天两次训练累加',h['2026-10-08'].sets.length,2);
+  const bak=JSON.stringify(fresh);
+  eq('备份文件能正常导入',(()=>{const r=importInto(migrate(null),bak,'overwrite');return r.db?r.db.days.length:r.error;})(),3);
+  eq('损坏 JSON 有明确提示',(importInto(migrate(null),'{oops','overwrite').error||'').includes('JSON'),true);
+  eq('空对象被拒绝',!!importInto(migrate(null),'{}','overwrite').error,true);
+  const bad=t.filter(x=>!x[1]);
+  $('view').innerHTML=`<div class="card"><b style="color:${bad.length?'#f87171':'#4ade80'}">自检 ${t.length-bad.length}/${t.length} 通过</b>
+    <pre>${t.map(x=>`<span class="${x[1]?'ok-t':'bad-t'}">${x[1]?'PASS':'FAIL'} ${x[0]}</span>${x[1]?'':'  got='+JSON.stringify(x[2])+' want='+JSON.stringify(x[3])}`).join('\n')}</pre></div>`;
+  $('nav').hidden=true;$('title').textContent='自检';
+}else{
+  render();
+}
+</script>
+</body>
+</html>
